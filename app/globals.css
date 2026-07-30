@@ -261,4 +261,10 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
 
 /* ---------- 7) Scroll spacer ---------- */
 
-.scroll-spacer { height: 220vh; pointer-events: none; }
+/* The sole scroll driver — the only element in normal flow. Its height IS the pacing
+   dial for the whole film: every animation is keyed to normalized scroll progress, so
+   this scales the video scrub and the choreography together, preserving their relative
+   rhythm. At 220vh the video burned ~6.3px per frame (a 200px flick ate 32 of its 145
+   frames, which read as "too fast"); 450vh puts it at ~18px/frame, inside the
+   comfortable 15-25 range. Raise to slow the film down, lower to speed it up. */
+.scroll-spacer { height: 450vh; pointer-events: none; }

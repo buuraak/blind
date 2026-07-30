@@ -19,8 +19,12 @@ const HEADER_A_END = A_END * 0.7; // 0.126 — header finishes before the frame 
 const PRODUCT_ENTER = [A_END, A_END + 0.18] as const; // [0.18, 0.36]
 const SCALE_WINDOW = [A_END + 0.18, B_END] as const; //  [0.36, 0.88]
 const MENU_ENTER = [0.9, 1.0] as const;
-const K = 0.1; // video scrub lerp coefficient
-const DEADBAND = 0.02; // seconds; below this no seek is issued
+/** Scrub follow tuned for the all-intra encode (~5ms seeks). The original K=0.1 +
+ *  30ms throttle existed to protect a single-GOP source whose seeks cost 24-33ms;
+ *  with every frame a keyframe the lerp can converge ~3x faster and seeks are paced
+ *  purely by the in-flight `seeking` flag (one at a time), no timer. */
+const K = 0.3; // video scrub lerp coefficient
+const DEADBAND = 0.02; // seconds; ~half a source frame (24fps = 41.7ms/frame)
 
 /** Per-item header exit windows, normalized inside headerP. Stagger 0.08, span 0.45.
  *  Exit order is deliberately bottom-of-the-list first. */
@@ -33,8 +37,14 @@ const EXIT_WINDOWS = {
   shop: [0.4, 0.85],
 } as const;
 
-const HERO_VIDEO =
-  "https://d8j0ntlcm91z4.cloudfront.net/user_3GJaYKPxdnQG0Q9O26lu6DPmcHu/hf_20260723_172008_6f130e07-eb0a-4962-b1ec-ade50ddca91e.mp4";
+/** Self-hosted all-intra re-encode of the CloudFront original (1920x1080, 24fps,
+ *  145 frames, EVERY frame a keyframe). The original was a single 6s GOP — one
+ *  keyframe total — so every seek decoded up to 145 frames from the start
+ *  (24-33ms/seek). All-intra brings seeks to ~5ms and the file is smaller (8.8MB
+ *  vs 11.9MB). Regenerate with:
+ *  ffmpeg -i src.mp4 -c:v libx264 -g 1 -crf 21 -preset slow -pix_fmt yuv420p \
+ *    -profile:v high -movflags +faststart -an hero-scrub-1080.mp4 */
+const HERO_VIDEO = "/hero-scrub-1080.mp4";
 const PRODUCT_IMG =
   "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUlRtRVj5FKnv5Y3ORh7yQ2gX21cFWOcqdSIlsrbdC96_SsVulylOGkEM&s=10";
 
@@ -170,7 +180,6 @@ export default function BlindByGlamour() {
     let scrubTarget = 0;
     let scrubCurrent = 0;
     let seeking = false;
-    let lastSeekTs = 0;
 
     const onLoadedMetadata = () => {
       try {
@@ -186,7 +195,7 @@ export default function BlindByGlamour() {
     video.addEventListener("seeked", onSeeked);
     if (video.readyState >= 1) onLoadedMetadata();
 
-    const loop = (now: number) => {
+    const loop = () => {
       const p = scrollYProgress.get();
 
       // Keep the button glued to the card's right edge + 1rem, every frame.
@@ -209,13 +218,11 @@ export default function BlindByGlamour() {
         if (Math.abs(scrubTarget - scrubCurrent) < 0.0001)
           scrubCurrent = scrubTarget;
 
-        if (
-          !seeking &&
-          Math.abs(scrubCurrent - video.currentTime) > DEADBAND &&
-          now - lastSeekTs > 30
-        ) {
+        // Seeks are paced by the in-flight flag alone: the next one fires on the
+        // frame after `seeked`. With ~5ms all-intra seeks that sustains ~60Hz+;
+        // the old 30ms timer throttle protected the slow single-GOP source.
+        if (!seeking && Math.abs(scrubCurrent - video.currentTime) > DEADBAND) {
           seeking = true;
-          lastSeekTs = now;
           try {
             video.currentTime = scrubCurrent;
           } catch {
