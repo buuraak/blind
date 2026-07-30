@@ -1,49 +1,264 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================================
+   Blind by Glamour — verbatim port of the single-file build.
+   The Next.js scaffold's default globals.css was deleted wholesale, not edited:
+   it set `overflow-x: hidden` on html/body (forbidden — breaks mix-blend-mode in
+   WebKit and caps the scroll), `display:flex` on body, and a dark-mode override.
+   ========================================================================= */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html {
-  height: 100%;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+html, body {
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+body { min-height: 100dvh; }
+img { display: block; max-width: 100%; }
+button, a { font: inherit; color: inherit; }
+ul { list-style: none; }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+html { font-size: clamp(11px, 0.833vw, 16px); }
+
+:root {
+  --bg: #fff;
+  --surface: #fff;
+  --ink: #000;
+  --ink-inverse: #fff;
+
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-serif-italic: Georgia, "Times New Roman", serif;
+
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --radius-sm: 0.375rem;
+  --radius-pill: 999px;
+
+  --fs-ui: max(11px, 0.6875rem);
+  --fs-brand: max(11px, 0.75rem);
 }
 
-a {
+/* ---------- 1) Site header ---------- */
+
+.site-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  background: transparent;
+  /* Solid black instead of mix-blend-mode: difference. The blend inverted the header
+     against the backdrop, which reads as muddy mid-gray over the bright hero video —
+     poor contrast exactly where the persistent items (logo, MENU, CART, SIGN IN) live.
+     At rest this is visually identical: white under `difference` over the white page
+     already resolves to 255-255 = 0. The other blended elements (.hero-title,
+     .hero-footer, .add-btn) are unaffected — they are separate body-level elements. */
+  color: var(--ink);
+  pointer-events: none;
+}
+.site-header a, .site-header button { pointer-events: auto; }
+
+/* Brand mark. Keeps the 130×56 px layout box the old video wordmark occupied so the
+   header's four-column rhythm is unchanged — these stay px, they do not scale with
+   the fluid root. `color: inherit` feeds the SVG's fill:currentColor from the
+   header's #fff, so the mark inverts with everything else under the blend. */
+.brand {
+  display: block;
+  width: 130px; height: 56px;
+  flex-shrink: 0;
   color: inherit;
-  text-decoration: none;
+  pointer-events: none;
+  overflow: visible;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+.tagline-hero {
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  max-width: 21.25rem;
+  will-change: opacity, transform, filter;
 }
+
+.menu ul { display: flex; flex-direction: column; gap: 2px; }
+.menu a {
+  font-size: var(--fs-ui); font-weight: 700; line-height: 1.55;
+  letter-spacing: 0.02em; text-transform: uppercase; text-decoration: none;
+}
+.menu-secondary { will-change: opacity, transform, filter; }
+.menu-word { position: relative; display: inline-block; text-decoration: none; }
+.menu-word__b { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+
+.account {
+  display: flex; gap: var(--space-5);
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.02em; text-transform: uppercase;
+}
+.account a { text-decoration: none; }
+
+/* ---------- 2) Hero video frame ---------- */
+
+/* The fixed layer is now a CONSTANT full-viewport box — it is never resized.
+   Previously this element animated `margin-top` while pinned top:0/bottom:0, which
+   recomputed its height every frame. A full-screen fixed layer that changes size each
+   frame (with four mix-blend-mode layers compositing against it) can be presented at
+   its new position with a stale raster of its old size — which paints the video as a
+   70vh band at the top with a white gap beneath.
+
+   The size animation now lives on .hero-window, an ordinary absolutely-positioned
+   child. Same box, same object-fit crop, but the fixed layer's bounds never move. */
+.hero {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 10;
+  /* NO overflow, NO will-change — both break mix-blend-mode on descendants' backdrop */
+}
+.hero-window {
+  position: absolute;
+  top: 30vh; left: 0; right: 0; bottom: 0;   /* `top` is animated 30vh -> 0 */
+  background-color: #000;
+}
+.hero-bg-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  border: none; outline: none;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* ---------- 3) Hero title ---------- */
+
+.hero-title { will-change: opacity, transform, filter; }
+
+.hero-title {
+  position: fixed;
+  z-index: 40;
+  left: var(--space-6); right: var(--space-6);
+  bottom: calc(70vh + var(--space-5));
+  color: var(--ink-inverse);
+  mix-blend-mode: difference;
+  pointer-events: none;
+  font-size: 2.5rem;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  will-change: opacity, transform, filter;
+}
+.hero-title .italic {
+  font-family: var(--font-serif-italic);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* ---------- 4) Hero footer / CTA ---------- */
+
+.hero-footer {
+  position: fixed; z-index: 20;
+  left: var(--space-6); right: var(--space-6); bottom: var(--space-6);
+  display: flex; align-items: flex-end; gap: var(--space-5);
+  color: var(--ink-inverse);
+  pointer-events: none;
+  mix-blend-mode: difference;
+}
+.hero-footer a, .hero-footer button { pointer-events: auto; }
+
+.cta {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: var(--space-4);
+  text-align: right;
+  margin-left: auto;
+}
+.cta-copy {
+  font-size: var(--fs-ui); font-weight: 700; line-height: 1.55;
+  letter-spacing: 0.02em; text-transform: uppercase;
+}
+.shop-now {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 3rem;
+  padding: 0 2.5rem;
+  background: #fff;
+  color: #fff;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-brand); font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none;
+}
+.shop-now__label { color: #fff; mix-blend-mode: difference; }
+
+/* ---------- 5) Product card ---------- */
+
+.product {
+  position: fixed; z-index: 20;
+  left: var(--space-6); bottom: var(--space-6);
+  display: flex; align-items: stretch;
+  gap: var(--space-4);
+  flex-shrink: 0;
+  color: var(--ink-inverse);
+  opacity: 0;
+  /* NO mix-blend-mode — the card and photo render in true colors */
+}
+.product-thumb {
+  position: relative;
+  width:  calc(7rem * var(--card-scale, 1));
+  height: calc(7rem * var(--card-scale, 1));
+  flex-shrink: 0;
+  align-self: stretch;
+  background: #fff;
+  border-radius: var(--radius-sm);
+}
+.product-thumb img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  padding: 0.375rem;
+}
+.product-info { display: flex; flex-direction: column; }
+.product-info h2 {
+  font-size: 1.375rem;
+  font-weight: 500; line-height: 1.15; letter-spacing: -0.01em;
+  margin-bottom: 0.625rem;
+}
+.desc {
+  font-size: var(--fs-ui); font-weight: 700; line-height: 1.5;
+  letter-spacing: 0.02em; text-transform: uppercase;
+  max-width: 34rem;
+  margin-bottom: 0.875rem;
+}
+.price {
+  display: inline-block;
+  font-size: 1.375rem; font-weight: 400; letter-spacing: -0.01em;
+  margin-top: auto;
+}
+
+/* ---------- 6) Add-to-cart button ---------- */
+
+.add-btn {
+  position: fixed; z-index: 20;
+  bottom: var(--space-6);
+  /* Static fallback so the button is correct before JS runs; the RAF loop keeps it
+     synced to the card's right edge + 1rem. The two agree exactly. */
+  left: calc(38rem + 7rem * var(--card-scale, 1));
+  width: 3.375rem; height: 3.375rem;
+  border: none; border-radius: 50%;
+  background: #fff;
+  color: #fff;
+  font-size: 1.625rem;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  mix-blend-mode: difference;
+  opacity: 0;
+  will-change: opacity, transform, filter;
+}
+.add-btn__label {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff;
+  mix-blend-mode: difference;
+  padding-bottom: 0.1875rem;
+}
+
+/* ---------- 7) Scroll spacer ---------- */
+
+.scroll-spacer { height: 220vh; pointer-events: none; }
