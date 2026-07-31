@@ -45,7 +45,10 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
 /* ---------- 1) Site header ---------- */
 
 .site-header {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  /* z-100 keeps the nav above .content (z-60), which slides over the pinned hero.
+     This is why every Act 2 section is light: a dark band passing under a solid
+     black header would erase it. */
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: var(--space-6);
   padding: var(--space-5) var(--space-6);
@@ -268,3 +271,302 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
    frames, which read as "too fast"); 450vh puts it at ~18px/frame, inside the
    comfortable 15-25 range. Raise to slow the film down, lower to speed it up. */
 .scroll-spacer { height: 450vh; pointer-events: none; }
+
+/* ============================================================================
+   ACT 2 — content that slides up over the pinned hero.
+
+   Everything below stays inside the existing vocabulary: black on white, no accent,
+   no shadows, Helvetica for structure and Georgia italic as the single gesture.
+   Every section is LIGHT. That is both a design decision — an inverted band read as
+   loud against the restraint of the rest of the page — and a constraint: the fixed
+   header is solid black, so a dark band scrolling beneath it fights the nav.
+   ========================================================================= */
+
+.content {
+  position: relative;
+  z-index: 60;              /* above the fixed hero (z 10-40), below the header (100) */
+  background: var(--bg);
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* ---------- shared section chrome ---------- */
+
+.section-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-6) var(--space-5);
+}
+.section-label,
+.section-count {
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.section-count { opacity: 0.45; }
+
+/* ---------- 8) Collection index ---------- */
+
+.collection { padding-bottom: var(--space-6); }
+
+.collection-list { position: relative; }
+
+.collection-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4rem 1fr 6rem 8rem;
+  align-items: baseline;
+  gap: var(--space-5);
+  padding: 1.35rem var(--space-6);
+  border-top: 1px solid rgba(0, 0, 0, 0.14);
+  text-decoration: none;
+  z-index: 1;                       /* keeps rows above the trailing image */
+}
+.collection-row:last-of-type { border-bottom: 1px solid rgba(0, 0, 0, 0.14); }
+
+.collection-index-num,
+.collection-ref,
+.collection-price {
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.collection-ref, .collection-price { opacity: 0.5; }
+.collection-price { text-align: right; }
+
+.collection-name {
+  font-size: 3.25rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+/* Hover is a typographic event: the name becomes the same Georgia italic as the
+   wordmark and the headline's "refined". */
+.collection-name.is-active {
+  font-family: var(--font-serif-italic);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.collection-peek {
+  position: absolute; top: 0; left: 0;
+  width: 20rem; height: 13rem;
+  margin: -6.5rem 0 0 -10rem;       /* centre on the cursor */
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+}
+.collection-peek img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+/* ---------- 9) Card pile ---------- */
+
+/* Fixed track height — nothing here depends on content width, so there is no travel
+   to measure. Generous on purpose: the scatter is the whole section, and at a shorter
+   track a single flick threw the pile apart before it could be read. */
+/* 340vh of animation + 100vh of overlap. The tail is the window in which the footer
+   slides up over the still-pinned pile — the same relationship .content has with the
+   fixed hero. Keep TRACK_VH / OVERLAP_VH in pile.tsx in sync with these numbers. */
+.pile { position: relative; z-index: 1; height: 440vh; }
+
+.pile-pin {
+  position: sticky; top: 0;
+  height: 100vh;
+  overflow: hidden;                 /* cards fly in from outside the frame */
+}
+/* Absolute rather than in flow: in flow its 12rem of header clearance pushed the
+   stage down, so the pile sat low instead of centred in the viewport. */
+.pile-head {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding-top: 12rem;               /* clears the ~129px fixed header */
+  z-index: 2;
+}
+
+/* Fills the pin so the pile centres on the true viewport centre. */
+.pile-stage {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  will-change: transform;
+}
+
+/* Sits behind the cards and reads through the gaps. Set large enough that it
+   extends well past the pile — at a smaller size the cards buried it completely
+   and it read as a stray mark rather than a line of type. */
+/* Centred, because the cards scatter to the edges and leave the middle clear — this
+   is what they uncover. Full strength black: it is the payoff of the section, not a
+   background wash, and it spends most of the scroll hidden behind the stack anyway. */
+.pile-line {
+  position: absolute;
+  left: var(--space-6); right: var(--space-6);
+  margin: 0 auto;
+  max-width: 52rem;
+  text-align: center;
+  font-size: 6.5rem;
+  font-weight: 500;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  z-index: 0;
+  pointer-events: none;
+}
+.pile-line .italic {
+  font-family: var(--font-serif-italic);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.pile-cards {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.pile-card {
+  position: absolute;
+  width: 26vw;
+  aspect-ratio: 1;
+  min-width: 210px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--bg);            /* placeholder until the image paints */
+  will-change: transform, opacity, filter;
+}
+.pile-card img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- 10) Footer ---------- */
+
+/* Slides up OVER the pinned pile rather than pushing it: pulled 100vh into the pile's
+   track by negative margin, painted above it, and opaque. This is exactly how
+   .content covers the fixed hero — same mechanism, one layer down. */
+.site-footer {
+  position: relative;
+  z-index: 2;
+  margin-top: -100vh;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  /* Page palette only — #fff and #000. Two earlier attempts invented a ground colour
+     (black, then a warm grey); both were additions nobody asked for. The wordmark
+     carries the weight instead, as a large black form at low opacity. */
+  background: var(--bg);
+  color: var(--ink);
+  border-top: 1px solid rgba(0, 0, 0, 0.14);
+  overflow: hidden;                 /* crops the wordmark at the page edge */
+  padding-top: 11rem;               /* clears the fixed header once it docks */
+}
+
+.footer-top {
+  position: relative; z-index: 2;
+  display: flex; flex-wrap: wrap;
+  gap: var(--space-6) 4rem;
+  justify-content: space-between;
+  padding: 0 var(--space-6) 3rem;
+}
+
+.footer-lead { max-width: 32rem; flex: 1 1 24rem; }
+.footer-headline {
+  font-size: 4rem;
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.25rem;
+}
+.footer-headline .italic {
+  font-family: var(--font-serif-italic);
+  font-style: italic;
+  font-weight: 400;
+}
+.footer-sub {
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 1.5rem;
+}
+
+/* Pill input + solid pill button, matching the reference's pairing. */
+.footer-signup {
+  display: flex; align-items: stretch; gap: 0.75rem;
+  max-width: 30rem;
+}
+.footer-signup input {
+  flex: 1; min-width: 0;
+  border: none; outline: none;
+  background: rgba(0, 0, 0, 0.055);
+  border-radius: var(--radius-pill);
+  padding: 1rem 1.5rem;
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink);
+}
+.footer-signup input::placeholder { color: var(--ink); opacity: 0.38; }
+.footer-signup input:focus { background: rgba(0, 0, 0, 0.09); }
+.footer-signup button {
+  border: none; cursor: pointer;
+  background: var(--ink);
+  color: var(--ink-inverse);
+  border-radius: var(--radius-pill);
+  padding: 0 2.25rem;
+  font-size: var(--fs-brand); font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.footer-cols {
+  display: flex; flex-wrap: wrap;
+  gap: var(--space-6) 3rem;
+}
+.footer-col { min-width: 7rem; }
+.footer-head {
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  opacity: 0.4;
+  margin-bottom: 0.9rem;
+}
+.footer-col ul { display: flex; flex-direction: column; gap: 0.45rem; }
+.footer-col a {
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  text-decoration: none;
+  opacity: 0.9;
+}
+.footer-col a:hover { opacity: 0.55; }
+
+/* Full-bleed wordmark. flex:1 lets it take the remaining height so it dominates the
+   lower footer the way the reference's does. The font-size below is only a sane
+   pre-JS default — site-footer.tsx measures the glyphs and sets the exact size that
+   fills the width, because a fixed vw value overflowed and clipped the B and the d. */
+.footer-wordmark {
+  position: relative; z-index: 0;
+  flex: 1;
+  display: flex; align-items: flex-end;
+  padding: 0 var(--space-6);
+  margin-bottom: -6.5vw;
+  line-height: 0.74;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.footer-wordmark__serif {
+  display: block;
+  font-family: var(--font-serif-italic);
+  font-style: italic;
+  font-size: 38vw;                  /* replaced at runtime by the measured fit */
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  opacity: 0.13;
+}
+
+/* Sits on top of the wordmark, as in the reference. */
+.footer-legal {
+  position: relative; z-index: 2;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  opacity: 0.6;
+}
+.footer-legal__links { display: flex; gap: var(--space-5); }
+.footer-legal a { text-decoration: none; }
+.footer-legal a:hover { opacity: 0.6; }

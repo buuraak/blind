@@ -10,6 +10,9 @@ import {
 } from "motion/react";
 import { ReactLenis } from "lenis/react";
 import { BrandMark } from "./logos";
+import { CollectionIndex } from "./collection-index";
+import { Pile } from "./pile";
+import { SiteFooter } from "./site-footer";
 
 /* ---------------------------------------------------------------- constants */
 
@@ -103,7 +106,19 @@ function useEnterStyle(
 
 export default function BlindByGlamour() {
   const [reduced, setReduced] = useState(false);
-  const { scrollYProgress } = useScroll();
+
+  /* Hero progress is scoped to its own pin track (.scroll-spacer), NOT the document.
+     A bare useScroll() normalizes over total document height, so adding any content
+     below would stretch the hero choreography across the whole page — the headline
+     would not finish exiting until the footer. Scoping it here makes the hero act
+     self-contained and independent of everything that follows.
+     `start start` -> `end end` means p goes 0..1 over (spacerHeight - viewportHeight),
+     which is exactly the range the document-scoped version used to cover. */
+  const heroTrackRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: heroTrackRef,
+    offset: ["start start", "end end"],
+  });
 
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const productRef = useRef<HTMLElement>(null);
@@ -143,6 +158,16 @@ export default function BlindByGlamour() {
     return v < 1 && blur > 0.05 ? `blur(${blur}px)` : "none";
   });
   const addBtnPointer = useTransform(enterP, (v) => (v < 0.02 ? "none" : "auto"));
+
+  /* The header docks as Act 2 arrives. Over the hero it must stay transparent (the
+     video is the backdrop), but once content slides up beneath it, black nav type and
+     black content type would overlap into mush — the old `difference` blend used to
+     resolve that for free. Fading in a white plate restores the separation. */
+  const headerBg = useTransform(
+    scrollYProgress,
+    [0.93, 1],
+    ["rgba(255,255,255,0)", "rgba(255,255,255,1)"]
+  );
 
   /* Header — six exits then the MENU enter */
   const tagline = useExitStyle(scrollYProgress, EXIT_WINDOWS.tagline, reduced);
@@ -243,8 +268,13 @@ export default function BlindByGlamour() {
   }, [scrollYProgress]);
 
   return (
-    <ReactLenis root>
-      <header className="site-header">
+    /* Smoother and slower than Lenis' defaults (lerp 0.1, wheelMultiplier 1):
+       a lower lerp lengthens the glide so the page eases to rest instead of stopping
+       with the wheel, and a sub-1 multiplier means each notch travels less distance.
+       Affordable now that the video scrub is all-intra — under the old 24ms seeks,
+       extra scroll smoothing just compounded the lag. */
+    <ReactLenis root options={{ lerp: 0.055, wheelMultiplier: 0.72 }}>
+      <motion.header className="site-header" style={{ background: headerBg }}>
         <BrandMark className="brand" />
 
         <motion.p className="tagline-hero" style={tagline}>
@@ -287,7 +317,7 @@ export default function BlindByGlamour() {
           <a href="#">CART (0)</a>
           <a href="#">SIGN IN</a>
         </div>
-      </header>
+      </motion.header>
 
       <motion.h1
         className="hero-title"
@@ -374,7 +404,18 @@ export default function BlindByGlamour() {
         </span>
       </motion.button>
 
-      <div className="scroll-spacer" aria-hidden="true" />
+      {/* Hero pin track. Its height IS the hero act's duration, and useScroll above
+          is scoped to it — so everything below can grow freely without touching the
+          hero's timing. */}
+      <div ref={heroTrackRef} className="scroll-spacer" aria-hidden="true" />
+
+      {/* Act 2. Slides up over the pinned hero: opaque background + higher z-index,
+          so the hero stays fixed underneath until it is fully covered. */}
+      <main className="content">
+        <CollectionIndex />
+        <Pile reduced={reduced} />
+        <SiteFooter />
+      </main>
     </ReactLenis>
   );
 }
