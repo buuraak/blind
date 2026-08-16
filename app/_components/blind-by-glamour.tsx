@@ -48,8 +48,18 @@ const EXIT_WINDOWS = {
  *  ffmpeg -i src.mp4 -c:v libx264 -g 1 -crf 21 -preset slow -pix_fmt yuv420p \
  *    -profile:v high -movflags +faststart -an hero-scrub-1080.mp4 */
 const HERO_VIDEO = "/hero-scrub-1080.mp4";
-const PRODUCT_IMG =
-  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUlRtRVj5FKnv5Y3ORh7yQ2gX21cFWOcqdSIlsrbdC96_SsVulylOGkEM&s=10";
+/** Frame 0 of the scrub video, so the hero paints immediately instead of showing
+ *  .hero-window's black ground while 8.8MB buffers. Regenerate with:
+ *  ffmpeg -i public/hero-scrub-1080.mp4 -vf "select=eq(n\,0),scale=1280:-2" \
+ *    -frames:v 1 -q:v 4 public/hero-poster.jpg */
+const HERO_POSTER = "/hero-poster.jpg";
+/** PLACEHOLDER — not cleared for production. This was hotlinked from Google's
+ *  thumbnail cache (encrypted-tbn0.gstatic.com), an ephemeral URL on a third-party
+ *  host. Self-hosting removes the runtime dependency, but the file is still a
+ *  Google-cached image and is NOT licensed. Replace with a real product shot of the
+ *  Fleuris 1005 before launch — a cutout on white, since .product-thumb is a white
+ *  rounded square using object-fit: contain. */
+const PRODUCT_IMG = "/product/fleuris-1005.jpg";
 
 /* ------------------------------------------------------------------ helpers */
 
@@ -106,6 +116,14 @@ function useEnterStyle(
 
 export default function BlindByGlamour() {
   const [reduced, setReduced] = useState(false);
+  /* The scrub needs the whole file resident, but 8.8MB is a punishing default on a
+     metered connection. SSR emits "metadata" so a frugal client never starts the
+     full fetch; the effect below upgrades to "auto" a few ms after mount on
+     everything else. Under "metadata" the scrub still works — `duration` comes from
+     the metadata and seeks fall back to range requests (the server answers 206) —
+     it just buffers as you scroll instead of up front. */
+  const [preload, setPreload] = useState<"auto" | "metadata">("metadata");
+  const [navOpen, setNavOpen] = useState(false);
 
   /* Hero progress is scoped to its own pin track (.scroll-spacer), NOT the document.
      A bare useScroll() normalizes over total document height, so adding any content
@@ -130,6 +148,18 @@ export default function BlindByGlamour() {
     const onChange = () => setReduced(mq.matches);
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    const conn = (
+      navigator as Navigator & {
+        connection?: { saveData?: boolean; effectiveType?: string };
+      }
+    ).connection;
+    const frugal =
+      conn?.saveData === true ||
+      (conn?.effectiveType !== undefined && conn.effectiveType !== "4g");
+    if (!frugal) setPreload("auto");
   }, []);
 
   /* Phase A — frame expand + title/CTA exit, both on the same curve */
@@ -230,8 +260,17 @@ export default function BlindByGlamour() {
         const rootPx = parseFloat(
           getComputedStyle(document.documentElement).fontSize
         );
+        /* Clamped to the viewport: at desktop widths the card's right edge is always
+           the binding value, so this is identical to the old behaviour. Below ~768px
+           the card is wide enough that the unclamped position put the button off
+           screen — it was one of the three sources of horizontal scroll. */
+        const maxLeft =
+          document.documentElement.clientWidth -
+          addBtn.offsetWidth -
+          rootPx * 2;
         addBtn.style.left =
-          product.getBoundingClientRect().right + rootPx + "px";
+          Math.min(product.getBoundingClientRect().right + rootPx, maxLeft) +
+          "px";
       }
 
       const duration = video.duration || 0;
@@ -317,6 +356,44 @@ export default function BlindByGlamour() {
           <a href="#">CART (0)</a>
           <a href="#">SIGN IN</a>
         </div>
+
+        {/* Mobile only (CSS-toggled at 768px). The desktop nav above keeps its
+            scroll-driven SHOP -> MENU morph untouched; below the breakpoint that
+            choreography has nowhere to land, so the header collapses to brand +
+            toggle and everything else moves into the panel. */}
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-expanded={navOpen}
+          aria-controls="mobile-nav"
+          onClick={() => setNavOpen((v) => !v)}
+        >
+          {navOpen ? "CLOSE" : "MENU"}
+        </button>
+
+        <div
+          id="mobile-nav"
+          className={navOpen ? "mobile-nav is-open" : "mobile-nav"}
+          hidden={!navOpen}
+        >
+          <ul>
+            {["SHOP", "BRANDS", "SERVICES", "EVENTS", "ABOUT US"].map((l) => (
+              <li key={l}>
+                <a href="#" onClick={() => setNavOpen(false)}>
+                  {l}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <div className="mobile-nav__account">
+            <a href="#" onClick={() => setNavOpen(false)}>
+              CART (0)
+            </a>
+            <a href="#" onClick={() => setNavOpen(false)}>
+              SIGN IN
+            </a>
+          </div>
+        </div>
       </motion.header>
 
       <motion.h1
@@ -338,7 +415,8 @@ export default function BlindByGlamour() {
             className="hero-bg-video"
             muted
             playsInline
-            preload="auto"
+            poster={HERO_POSTER}
+            preload={preload}
           >
             <source src={HERO_VIDEO} type="video/mp4" />
           </video>
@@ -374,9 +452,16 @@ export default function BlindByGlamour() {
       >
         <div className="product-thumb">
           {/* Plain <img>: next/image would wrap/inject sizing that fights the
-              scale-driven calc() box, and the asset is a remote thumbnail. */}
+              scale-driven calc() box. Explicit width/height reserve the box before
+              the file lands; the CSS still drives the rendered size. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={PRODUCT_IMG} alt="Portrait Fleuris 1005 eyewear frame" />
+          <img
+            src={PRODUCT_IMG}
+            alt="Portrait Fleuris 1005 eyewear frame"
+            width={399}
+            height={501}
+            decoding="async"
+          />
         </div>
         <div className="product-info">
           <h2>Portrait, Fleuris 1005</h2>

@@ -570,3 +570,159 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
 .footer-legal__links { display: flex; gap: var(--space-5); }
 .footer-legal a { text-decoration: none; }
 .footer-legal a:hover { opacity: 0.6; }
+
+/* ============================================================================
+   ACT 3 — narrow viewports.
+
+   The root font is `clamp(11px, 0.833vw, 16px)`, so below ~1320px the rem stops
+   tracking the viewport and pins at 11px. Everything sized in rem therefore keeps
+   its 1320px footprint while the window keeps shrinking — which is why the page had
+   37px of horizontal scroll at 390px with no media query in sight. These blocks put
+   the reflow back by hand.
+
+   The scroll film itself is unchanged: same pin track, same scrub, same pile. Only
+   layout moves.
+   ========================================================================= */
+
+/* Mobile nav: hidden above the breakpoint, so desktop is untouched. */
+.nav-toggle, .mobile-nav { display: none; }
+
+@media (max-width: 768px) {
+  /* ---- header: brand + toggle, everything else into the panel ---- */
+  .site-header {
+    align-items: center;
+    padding: var(--space-4) var(--space-5);
+    gap: var(--space-4);
+  }
+  .tagline-hero, .menu, .account { display: none; }
+  /* Above the panel alongside the toggle, so an open menu still reads as the site
+     header rather than a bare list. */
+  .brand { position: relative; z-index: 2; width: 104px; height: 45px; }
+
+  .nav-toggle {
+    display: block;
+    position: relative; z-index: 2;   /* above the panel, so CLOSE stays hittable */
+    pointer-events: auto;
+    background: none; border: none; cursor: pointer;
+    /* 44px tall so the one control that must be hittable on touch clears the 24px
+       WCAG minimum with room to spare. */
+    min-height: 44px; padding: 0 0.25rem;
+    font-size: var(--fs-ui); font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: inherit;
+  }
+
+  /* Fixed and opaque rather than scroll-locking the page: `overflow` on html/body is
+     a hard invariant here (it breaks mix-blend-mode in WebKit and caps the scroll),
+     so the panel covers the page instead of freezing it. */
+  .mobile-nav {
+    display: flex; flex-direction: column; justify-content: center;
+    position: fixed; inset: 0; z-index: 1;
+    padding: 6rem var(--space-5) var(--space-5);
+    background: var(--bg);
+    overscroll-behavior: contain;
+    pointer-events: auto;
+  }
+  .mobile-nav[hidden] { display: none; }
+  .mobile-nav ul { display: flex; flex-direction: column; gap: 0.35rem; }
+  .mobile-nav a {
+    display: block;
+    padding: 0.55rem 0;              /* 24px+ touch targets */
+    font-size: 2rem; font-weight: 500;
+    line-height: 1.15; letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+  .mobile-nav__account {
+    display: flex; gap: var(--space-5);
+    margin-top: var(--space-6);
+    padding-top: var(--space-5);
+    border-top: 1px solid rgba(0, 0, 0, 0.14);
+  }
+  .mobile-nav__account a {
+    font-size: var(--fs-ui); font-weight: 700;
+    letter-spacing: 0.1em; padding: 0.5rem 0;
+  }
+
+  /* ---- hero ---- */
+  .hero-title {
+    left: var(--space-5); right: var(--space-5);
+    font-size: 2rem;
+  }
+  .hero-footer {
+    left: var(--space-5); right: var(--space-5); bottom: var(--space-5);
+  }
+  /* The copy is a full paragraph of uppercase 11px; at 390px it took five lines and
+     crowded the card. The CTA is what has to survive here. */
+  .cta-copy { display: none; }
+
+  /* ---- product card ---- */
+  /* `right` is the fix for the overflow: the card was a fixed-left flex row sized by
+     its content, so .desc's 34rem cap pushed it past the viewport. */
+  .product {
+    left: var(--space-5); right: var(--space-5); bottom: var(--space-5);
+    gap: 0.75rem;
+  }
+  .product-thumb {
+    width:  calc(4.5rem * var(--card-scale, 1));
+    height: calc(4.5rem * var(--card-scale, 1));
+  }
+  .product-info { min-width: 0; }
+  .product-info h2 { font-size: 1.125rem; margin-bottom: 0.4rem; }
+  .desc {
+    max-width: none;
+    margin-bottom: 0.5rem;
+    /* Two lines, then ellipsis — the full copy lives on the product page. */
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .price { font-size: 1.125rem; }
+
+  .add-btn {
+    bottom: var(--space-5);
+    width: 2.75rem; height: 2.75rem;
+    font-size: 1.25rem;
+  }
+
+  /* ---- collection ---- */
+  .section-head { padding: var(--space-5) var(--space-5) var(--space-4); }
+  .collection-row {
+    grid-template-columns: 2rem 1fr auto;
+    gap: var(--space-4);
+    padding: 1rem var(--space-5);
+  }
+  /* Dropped rather than wrapped: the model ref is metadata, the name and the price
+     are the row's content. */
+  .collection-ref { display: none; }
+  .collection-name { font-size: 2.25rem; }
+  /* Cursor-following image has no meaning on touch. */
+  .collection-peek { display: none; }
+
+  /* ---- pile ---- */
+  .pile-head { padding-top: 7rem; }
+  .pile-line { left: var(--space-5); right: var(--space-5); font-size: 3rem; }
+  .pile-card { width: 44vw; min-width: 0; }
+
+  /* ---- footer ---- */
+  .site-footer { padding-top: 7rem; }
+  .footer-top { padding: 0 var(--space-5) 2rem; gap: var(--space-6) 2rem; }
+  .footer-headline { font-size: 2.75rem; }
+  .footer-cols { gap: var(--space-5) 2rem; }
+  .footer-signup { flex-direction: column; max-width: none; }
+  .footer-signup button { padding: 1rem 2.25rem; }
+  .footer-wordmark { padding: 0 var(--space-5); }
+  .footer-legal {
+    flex-direction: column; align-items: flex-start; gap: 0.75rem;
+    padding: var(--space-5);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title { font-size: 1.625rem; }
+  .collection-name { font-size: 1.75rem; }
+  .pile-line { font-size: 2.25rem; }
+  .footer-headline { font-size: 2.25rem; }
+  .mobile-nav a { font-size: 1.75rem; }
+  /* At this width the thumb plus two lines of type is all that fits beside the
+     button; the description goes and the card becomes name + price. */
+  .desc { display: none; }
+}
