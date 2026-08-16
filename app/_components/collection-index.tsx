@@ -105,6 +105,10 @@ export function CollectionIndex() {
             src={FRAMES[active ?? 0].img}
             alt=""
             draggable={false}
+            width={900}
+            height={506}
+            loading="lazy"
+            decoding="async"
           />
         </motion.div>
       </div>

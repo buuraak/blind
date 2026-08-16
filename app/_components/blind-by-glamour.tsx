@@ -162,6 +162,17 @@ export default function BlindByGlamour() {
     if (!frugal) setPreload("auto");
   }, []);
 
+  /* The panel covers the viewport, so Escape is the expected way out; without it the
+     only exit is hitting the toggle again. */
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [navOpen]);
+
   /* Phase A — frame expand + title/CTA exit, both on the same curve */
   const a = useTransform(scrollYProgress, (p) => {
     const raw = remap(p, 0, A_END);
@@ -312,7 +323,20 @@ export default function BlindByGlamour() {
        with the wheel, and a sub-1 multiplier means each notch travels less distance.
        Affordable now that the video scrub is all-intra — under the old 24ms seeks,
        extra scroll smoothing just compounded the lag. */
-    <ReactLenis root options={{ lerp: 0.055, wheelMultiplier: 0.72 }}>
+    /* Under reduced motion smoothing is switched off at the source rather than tuned
+       down: smoothWheel:false hands the wheel back to the browser, so there is no
+       interpolation left to glide. lerp:1 alone still routed every wheel event through
+       Lenis' RAF and measured 86px of travel after the input stopped. Damping the
+       wheel is itself motion the user asked not to have — gating only the blur and
+       easing (as before) left the page gliding to rest. */
+    <ReactLenis
+      root
+      options={
+        reduced
+          ? { smoothWheel: false, wheelMultiplier: 1, lerp: 1 }
+          : { lerp: 0.055, wheelMultiplier: 0.72 }
+      }
+    >
       <motion.header className="site-header" style={{ background: headerBg }}>
         <BrandMark className="brand" />
 
@@ -420,6 +444,13 @@ export default function BlindByGlamour() {
           >
             <source src={HERO_VIDEO} type="video/mp4" />
           </video>
+          {/* Sits inside .hero (z 10) so it lands in the backdrop that .hero-footer
+              (z 20) differences against, rather than being blended itself. Difference
+              blend is self-contrasting at the extremes but collapses on mid-tones —
+              measured 1.10:1 over the yellow knit, against 7.15:1 over the light
+              ground. Darkening the backdrop under the text pushes the blend back to
+              the near-white end of its range. */}
+          <div className="hero-scrim" aria-hidden="true" />
         </motion.div>
       </section>
 
@@ -496,7 +527,7 @@ export default function BlindByGlamour() {
 
       {/* Act 2. Slides up over the pinned hero: opaque background + higher z-index,
           so the hero stays fixed underneath until it is fully covered. */}
-      <main className="content">
+      <main className="content" id="main">
         <CollectionIndex />
         <Pile reduced={reduced} />
         <SiteFooter />

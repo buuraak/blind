@@ -80,7 +80,15 @@ function PileCard({
       style={{ x, y, rotate, zIndex: CARDS.length - index }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={card.img} alt="" draggable={false} />
+      <img
+        src={card.img}
+        alt=""
+        draggable={false}
+        width={900}
+        height={506}
+        loading="lazy"
+        decoding="async"
+      />
     </motion.figure>
   );
 }

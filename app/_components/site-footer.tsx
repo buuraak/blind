@@ -95,7 +95,11 @@ export function SiteFooter() {
           >
             <input
               type="email"
-              placeholder="YOUR EMAIL ADDRESS"
+              name="email"
+              autoComplete="email"
+              inputMode="email"
+              spellCheck={false}
+              placeholder="YOUR EMAIL ADDRESS…"
               aria-label="Email address"
               required
             />

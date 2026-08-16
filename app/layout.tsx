@@ -1,9 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "lenis/dist/lenis.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Blind by Glamour",
+};
+
+/* The palette is #fff and #000 with no dark variant, so the scheme is declared
+   light rather than left to the UA — otherwise a dark-mode browser restyles the
+   native <select>/input chrome against a white page. themeColor matches the ground. */
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#ffffff",
 };
 
 /**
@@ -25,7 +33,14 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      {/* The skip link is a sibling of `children`, not a wrapper — it adds no
+          stacking context, so the blend invariant above still holds. */}
+      <body>
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }
