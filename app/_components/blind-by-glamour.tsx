@@ -8,11 +8,12 @@ import {
   useMotionValueEvent,
   type MotionValue,
 } from "motion/react";
-import { ReactLenis } from "lenis/react";
-import { BrandMark } from "./logos";
+import Link from "next/link";
+import { SiteHeader } from "./site-header";
 import { CollectionIndex } from "./collection-index";
 import { Pile } from "./pile";
 import { SiteFooter } from "./site-footer";
+import { FRAMES, frameHref } from "../_data/frames";
 
 /* ---------------------------------------------------------------- constants */
 
@@ -58,8 +59,11 @@ const HERO_POSTER = "/hero-poster.jpg";
  *  host. Self-hosting removes the runtime dependency, but the file is still a
  *  Google-cached image and is NOT licensed. Replace with a real product shot of the
  *  Fleuris 1005 before launch — a cutout on white, since .product-thumb is a white
- *  rounded square using object-fit: contain. */
+ *  rounded square using object-fit: contain.
+ *  The product pages use the same file via `PLACEHOLDER_THUMB` in _data/frames.ts. */
 const PRODUCT_IMG = "/product/fleuris-1005.jpg";
+/** The card shows the frame the film is about — the first of the collection. */
+const HERO_FRAME = FRAMES[0];
 
 /* ------------------------------------------------------------------ helpers */
 
@@ -123,7 +127,6 @@ export default function BlindByGlamour() {
      the metadata and seeks fall back to range requests (the server answers 206) —
      it just buffers as you scroll instead of up front. */
   const [preload, setPreload] = useState<"auto" | "metadata">("metadata");
-  const [navOpen, setNavOpen] = useState(false);
 
   /* Hero progress is scoped to its own pin track (.scroll-spacer), NOT the document.
      A bare useScroll() normalizes over total document height, so adding any content
@@ -307,94 +310,23 @@ export default function BlindByGlamour() {
   }, [scrollYProgress]);
 
   return (
-    /* Smoother and slower than Lenis' defaults (lerp 0.1, wheelMultiplier 1):
-       a lower lerp lengthens the glide so the page eases to rest instead of stopping
-       with the wheel, and a sub-1 multiplier means each notch travels less distance.
-       Affordable now that the video scrub is all-intra — under the old 24ms seeks,
-       extra scroll smoothing just compounded the lag. */
-    <ReactLenis root options={{ lerp: 0.055, wheelMultiplier: 0.72 }}>
-      <motion.header className="site-header" style={{ background: headerBg }}>
-        <BrandMark className="brand" />
-
-        <motion.p className="tagline-hero" style={tagline}>
-          WITH EVERY PROFILE WE PICKED, WE STRIVE TO AWAKEN THE VISION, AND GIVE
-          THE BEST
-        </motion.p>
-
-        <nav className="menu" aria-label="Primary">
-          <ul>
-            <li className="menu-primary">
-              <a href="#" className="menu-word">
-                <motion.span className="menu-word__a" style={shop}>
-                  SHOP
-                </motion.span>
-                <motion.span
-                  className="menu-word__b"
-                  aria-hidden="true"
-                  style={menu}
-                >
-                  MENU
-                </motion.span>
-              </a>
-            </li>
-            <motion.li className="menu-secondary" style={brands}>
-              <a href="#">BRANDS</a>
-            </motion.li>
-            <motion.li className="menu-secondary" style={services}>
-              <a href="#">SERVICES</a>
-            </motion.li>
-            <motion.li className="menu-secondary" style={events}>
-              <a href="#">EVENTS</a>
-            </motion.li>
-            <motion.li className="menu-secondary" style={aboutUs}>
-              <a href="#">ABOUT US</a>
-            </motion.li>
-          </ul>
-        </nav>
-
-        <div className="account">
-          <a href="#">CART (0)</a>
-          <a href="#">SIGN IN</a>
-        </div>
-
-        {/* Mobile only (CSS-toggled at 768px). The desktop nav above keeps its
-            scroll-driven SHOP -> MENU morph untouched; below the breakpoint that
-            choreography has nowhere to land, so the header collapses to brand +
-            toggle and everything else moves into the panel. */}
-        <button
-          type="button"
-          className="nav-toggle"
-          aria-expanded={navOpen}
-          aria-controls="mobile-nav"
-          onClick={() => setNavOpen((v) => !v)}
-        >
-          {navOpen ? "CLOSE" : "MENU"}
-        </button>
-
-        <div
-          id="mobile-nav"
-          className={navOpen ? "mobile-nav is-open" : "mobile-nav"}
-          hidden={!navOpen}
-        >
-          <ul>
-            {["SHOP", "BRANDS", "SERVICES", "EVENTS", "ABOUT US"].map((l) => (
-              <li key={l}>
-                <a href="#" onClick={() => setNavOpen(false)}>
-                  {l}
-                </a>
-              </li>
-            ))}
-          </ul>
-          <div className="mobile-nav__account">
-            <a href="#" onClick={() => setNavOpen(false)}>
-              CART (0)
-            </a>
-            <a href="#" onClick={() => setNavOpen(false)}>
-              SIGN IN
-            </a>
-          </div>
-        </div>
-      </motion.header>
+    /* Lenis now lives in the root layout (see smooth-scroll.tsx) so every route
+       shares the same easing — the film is no longer the only page that scrolls. */
+    <>
+      {/* The mobile nav that used to be inline here now lives inside SiteHeader, so
+          the product pages get it too rather than being desktop-only. */}
+      <SiteHeader
+        animation={{
+          background: headerBg,
+          tagline,
+          shop,
+          menu,
+          brands,
+          services,
+          events,
+          aboutUs,
+        }}
+      />
 
       <motion.h1
         className="hero-title"
@@ -457,19 +389,22 @@ export default function BlindByGlamour() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={PRODUCT_IMG}
-            alt="Portrait Fleuris 1005 eyewear frame"
+            alt={`Portrait ${HERO_FRAME.name} ${HERO_FRAME.ref} eyewear frame`}
             width={399}
             height={501}
             decoding="async"
           />
         </div>
         <div className="product-info">
-          <h2>Portrait, Fleuris 1005</h2>
-          <p className="desc">
-            A HAND-CUT, ACETATE FRAME, AND FLORAL INLAY LENS THAT PROTECTS AND
-            HELPS FOCUS EACH EYE WHILE YOU BLINK.
-          </p>
-          <span className="price">$4,650.00</span>
+          <h2>
+            {/* The card is the film's only route into the collection — the index
+                below it is 450vh away. */}
+            <Link className="product-link" href={frameHref(HERO_FRAME.slug)}>
+              Portrait, {HERO_FRAME.name} {HERO_FRAME.ref}
+            </Link>
+          </h2>
+          <p className="desc">{HERO_FRAME.description}</p>
+          <span className="price">{HERO_FRAME.price}.00</span>
         </div>
       </motion.article>
 
@@ -499,8 +434,8 @@ export default function BlindByGlamour() {
       <main className="content">
         <CollectionIndex />
         <Pile reduced={reduced} />
-        <SiteFooter />
+        <SiteFooter overlap />
       </main>
-    </ReactLenis>
+    </>
   );
 }

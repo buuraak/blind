@@ -1,9 +1,19 @@
 import type { Metadata } from "next";
 import "lenis/dist/lenis.css";
 import "./globals.css";
+import { SmoothScroll } from "./_components/smooth-scroll";
 
 export const metadata: Metadata = {
-  title: "Blind by Glamour",
+  /** Resolves the product pages' relative Open Graph images to absolute URLs.
+   *  Set NEXT_PUBLIC_SITE_URL in the deploy environment. */
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+  ),
+  title: {
+    default: "Blind by Glamour",
+    /** Product pages set only their own name; the house closes every title. */
+    template: "%s — Blind by Glamour",
+  },
 };
 
 /**
@@ -25,7 +35,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SmoothScroll>{children}</SmoothScroll>
+      </body>
     </html>
   );
 }

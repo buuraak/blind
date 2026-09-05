@@ -22,6 +22,10 @@ ul { list-style: none; }
 
 html { font-size: clamp(11px, 0.833vw, 16px); }
 
+/* The header is fixed and ~11rem tall, so an anchor jump (/#collection from a product
+   page) would land its target underneath the nav without this. */
+html { scroll-padding-top: 9rem; }
+
 :root {
   --bg: #fff;
   --surface: #fff;
@@ -63,6 +67,12 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
   pointer-events: none;
 }
 .site-header a, .site-header button { pointer-events: auto; }
+
+/* Off the film there is no video to sit over and no scroll choreography to fade the
+   plate in, so the bar is opaque from the start — black type over content scrolling
+   beneath it would otherwise read as mush. */
+.site-header--solid { background: var(--bg); }
+.brand--link { pointer-events: auto; }
 
 /* Brand mark. Keeps the 130×56 px layout box the old video wordmark occupied so the
    header's four-column rhythm is unchanged — these stay px, they do not scale with
@@ -218,6 +228,9 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
   padding: 0.375rem;
 }
 .product-info { display: flex; flex-direction: column; }
+/* h1 as well as h2: the product page uses this same card, where the name is the
+   page's heading rather than a card title. */
+.product-info h1,
 .product-info h2 {
   font-size: 1.375rem;
   font-weight: 500; line-height: 1.15; letter-spacing: -0.01em;
@@ -234,6 +247,10 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
   font-size: 1.375rem; font-weight: 400; letter-spacing: -0.01em;
   margin-top: auto;
 }
+/* The card's title is the film's only route into the collection. Underlined only on
+   hover — a permanent rule would be the one decorative line on the page. */
+.product-link { text-decoration: none; }
+.product-link:hover { text-decoration: underline; text-underline-offset: 0.2em; }
 
 /* ---------- 6) Add-to-cart button ---------- */
 
@@ -438,13 +455,9 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
 
 /* ---------- 10) Footer ---------- */
 
-/* Slides up OVER the pinned pile rather than pushing it: pulled 100vh into the pile's
-   track by negative margin, painted above it, and opaque. This is exactly how
-   .content covers the fixed hero — same mechanism, one layer down. */
 .site-footer {
   position: relative;
   z-index: 2;
-  margin-top: -100vh;
   min-height: 100vh;
   display: flex; flex-direction: column;
   /* Page palette only — #fff and #000. Two earlier attempts invented a ground colour
@@ -456,6 +469,12 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
   overflow: hidden;                 /* crops the wordmark at the page edge */
   padding-top: 11rem;               /* clears the fixed header once it docks */
 }
+
+/* Slides up OVER the pinned pile rather than pushing it: pulled 100vh into the pile's
+   track by negative margin, painted above it, and opaque. This is exactly how
+   .content covers the fixed hero — same mechanism, one layer down.
+   Film only: on a page with nothing pinned beneath it, this eats 100vh of content. */
+.site-footer--overlap { margin-top: -100vh; }
 
 .footer-top {
   position: relative; z-index: 2;
@@ -571,6 +590,360 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
 .footer-legal a { text-decoration: none; }
 .footer-legal a:hover { opacity: 0.6; }
 
+
+/* ============================================================================
+   11) PRODUCT PAGE — /frames/[slug]
+
+   Two plates: the frame's film at full screen, then the specification directly
+   under it. There is no third plate — the collection has exactly one photograph
+   per frame, and a gallery would have to invent the rest.
+
+   NOTHING HERE INVENTS A TYPE SIZE. Every value below is already in use above:
+     4rem      = .footer-headline          (the display size)
+     1.375rem  = .product-info h2 / .price (name and price)
+     --fs-ui   = every label, spec and note
+     3rem tall / 2.5rem wide pill = .shop-now
+   If a size is needed that is not on that list, the right move is to reuse one
+   of them, not to add a seventh.
+   ========================================================================= */
+
+.pdp {
+  position: relative;
+  z-index: 1;
+  background: var(--bg);
+
+  /* Header clearance. It cannot be a plain rem value: the header's height is set by
+     the menu list, whose type is `max(11px, 0.6875rem)` — so at small root sizes the
+     header stops shrinking (126px floor) while a rem-based padding keeps going and
+     content slides under the nav. The px term is that floor plus air.
+     The page itself does not need it — the film runs under the header on purpose —
+     but the sticky crop and the not-found plate do. */
+  --pdp-header-clear: max(12rem, 152px);
+}
+
+/* ---------- 11a) the film ---------- */
+
+/* Full screen, and the first thing on the page: the header floats over it rather than
+   pushing it down, which is why .pdp has no top padding. svh, not vh — on mobile a vh
+   unit is the LARGEST viewport height, so the bottom-left product block would sit
+   under the browser chrome until the toolbar retracted.
+
+   PINNED. The film holds still and the white page below is dragged up over it, which
+   is the home page's arrangement one route over — there `.hero` is fixed and
+   `.content` slides across it. Scrolling the film away like an ordinary section made
+   the handover read as nothing at all: two blocks passing. This way the reader is
+   pulling the page up themselves.
+
+   Sticky rather than fixed because sticky stays inside `.pdp`'s flow — it needs no
+   spacer element to reserve its height, and it releases on its own at the end. */
+.pdp-film {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 32rem;
+  overflow: hidden;
+  background: #000;
+}
+
+/* The sheet that covers it. Opaque and stacked above — the two things that make the
+   cover work. Without the background the film would read straight through it. */
+.pdp-content {
+  position: relative;
+  z-index: 1;
+  background: var(--bg);
+}
+.pdp-film__video,
+.pdp-film__preview {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+/* Above the film, below the scrim — so the product card stays legible whichever
+   image is showing. */
+.pdp-film__preview { z-index: 1; pointer-events: none; }
+
+/* The type has to hold against whatever the footage is doing under it. Black at low
+   alpha — still just #000, no new colour. */
+.pdp-film__scrim {
+  position: absolute; inset: 0;
+  z-index: 2;
+  background:
+    /* Anchored to the bottom-left corner, so it fades out well before the top-left,
+       where the brand mark is black type and must stay on a light backdrop. */
+    radial-gradient(
+      118% 82% at 0% 100%,
+      rgba(0, 0, 0, 0.74) 0%,
+      rgba(0, 0, 0, 0.34) 38%,
+      rgba(0, 0, 0, 0) 72%
+    ),
+    /* A gentle wash across the whole bottom edge so the corner does not read as a
+       spotlight sitting on the footage. */
+    linear-gradient(to top, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0) 40%);
+  pointer-events: none;
+}
+
+/* Bottom-left — the corner the home page's product card already occupies, so the two
+   pages read from the same position. */
+.pdp-film__meta {
+  position: absolute;
+  z-index: 3;                       /* over the scrim */
+  left: var(--space-6); bottom: var(--space-6);
+  right: var(--space-6);
+  color: var(--ink-inverse);
+}
+
+/* Card and pile share a baseline. */
+.pdp-film__row {
+  display: flex; align-items: flex-end;
+  gap: 3rem;
+}
+
+/* The home page's product card, rebuilt in place: `.product-thumb`, `.product-info`
+   and `.price` are reused verbatim, so the only thing declared here is the layout
+   that `.product` provides on the home page (where it is `position: fixed`, which is
+   no use inside the film). */
+.pdp-film__card {
+  display: flex; align-items: stretch;
+  gap: var(--space-4);
+
+  /* The home page's hero drives `--card-scale` up to 1.9 and leaves it on
+     documentElement. A client-side navigation from the film to this page inherits
+     whatever value it stopped at, which would blow the thumbnail up to twice size.
+     Pinning it here makes the card independent of wherever the reader came from. */
+  --card-scale: 1;
+}
+
+/* The round `+`, matching `.add-btn`'s size and lettering. Not that class itself: it
+   is `position: fixed` and painted with mix-blend-mode: difference, which needs the
+   root stacking context and would go invisible inside `.pdp`. */
+.pdp-add {
+  align-self: flex-end;
+  flex-shrink: 0;
+  width: 3.375rem; height: 3.375rem;
+  border: none; border-radius: 50%;
+  background: var(--ink-inverse);
+  color: var(--ink);
+  font-size: 1.625rem;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pdp-add span { padding-bottom: 0.1875rem; }
+.pdp-add:hover { opacity: 0.86; }
+
+/* ---------- 11a-ii) the fanned pile ---------- */
+
+.pdp-stack__label {
+  margin-bottom: 0.9rem;
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  opacity: 0.65;
+}
+
+/* The container's width is what makes the hover behave. The cards are absolutely
+   positioned and fan out to the right, so a fixed-width box would stop containing
+   them once spread — the pointer would leave the box while still over a card, the
+   fan would snap shut, and re-entering would reopen it: a flicker loop. Growing the
+   box with the fan, on the same curve, means mouseleave fires only on a real exit. */
+.pdp-stack {
+  position: relative;
+  width: 7rem;                      /* 4rem card + 4 x 0.75rem of overlap */
+  height: 5rem;                     /* 4rem card at 4:5 */
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pdp-stack.is-spread { width: 22rem; }
+
+.pdp-stack__item {
+  position: absolute; top: 0; left: 0;
+  width: 4rem;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg);
+  /* The pile on the home page reads as physical because the cards occlude each
+     other; at this size a hairline keeps them separated against dark footage. */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+.pdp-stack__item a { display: block; width: 100%; height: 100%; }
+.pdp-stack__item img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdp-stack { transition: none; }
+}
+
+/* ---------- 11b) the pill ---------- */
+
+/* .shop-now's metrics exactly. That one is white-on-white and only resolves under
+   mix-blend-mode over the hero video, so it cannot be reused literally — but its
+   size, padding and lettering are the house's button, and they are kept. */
+.pdp-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; cursor: pointer;
+  border-radius: var(--radius-pill);
+  min-height: 3rem;
+  padding: 0 2.5rem;
+  font-size: var(--fs-brand); font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  white-space: nowrap;
+}
+/* The footer's SUBSCRIBE button, which is this same pill on white. */
+.pdp-btn--dark { background: var(--ink); color: var(--ink-inverse); }
+.pdp-btn:hover { opacity: 0.84; }
+
+/* ---------- 11c) the detail ---------- */
+
+/* Directly under the film. No rule across the top — the video's bottom edge is the
+   divider, and a border there would read as a second one.
+   Copy left, specification right: the same split .footer-top makes between its lead
+   block and its link columns. There is no second photograph — the film is the page's
+   only image. */
+/* Spacing is the house's, not a product-page invention. `.footer-top` uses exactly
+   `gap: var(--space-6) 4rem` and pads `0 var(--space-6) 3rem`; `.section-head` opens a
+   section with `var(--space-6)`. Nothing here is looser than that — the site is
+   compact, and 7rem of air under the film read as a different page. */
+.pdp-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: var(--space-6) 4rem;
+  align-items: start;
+  padding: var(--space-6) var(--space-6) 3rem;
+}
+
+/* `.desc` carries the type AND its 0.875rem bottom margin — the same rhythm the home
+   page's product card runs. Only the measure is set here. */
+.pdp-copy__para {
+  max-width: 32rem;
+  will-change: transform;
+}
+.pdp-copy__para + .pdp-copy__para { opacity: 0.55; }
+
+.pdp-specs {
+  margin: 0 0 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.14);
+  will-change: transform;
+}
+/* 0.75rem rows, matching the footer sign-up's gap — the collection index's 1.35rem is
+   for 3.25rem type, not for micro-type. */
+.pdp-spec {
+  display: grid;
+  grid-template-columns: 10rem 1fr;
+  gap: var(--space-5);
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.pdp-spec dt { opacity: 0.45; }
+
+.pdp-buy {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--space-5);
+}
+.pdp-buy__note {
+  flex-basis: 100%;
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  opacity: 0.45;
+}
+
+/* ---------- 11d) the rest of the collection ---------- */
+
+/* `.collection` closes with var(--space-6); this matches it. */
+.pdp-more {
+  border-top: 1px solid rgba(0, 0, 0, 0.14);
+  padding-bottom: var(--space-6);
+}
+.pdp-more__list {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-5);
+  padding: 0 var(--space-6);
+}
+.pdp-more__item { display: block; text-decoration: none; }
+.pdp-more__img {
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  margin-bottom: 0.9rem;
+}
+/* No standing transform: scale(). A 4:5 box already crops a 16:9 still to a ~45%
+   vertical slice under object-fit: cover, and cover DOWNSCALES to do it, so the
+   picture stays sharp. Magnifying on top of that pushes past the source's resolution
+   and renders as a soft smear. */
+/* video as well as img: one card in the row plays film, as a preview of how the row
+   reads once frames have their own footage. Identical box and crop either way. */
+.pdp-more__img img,
+.pdp-more__img video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* A push-in on hover only. */
+.pdp-more__item:hover .pdp-more__img img,
+.pdp-more__item:hover .pdp-more__img video { transform: scale(1.04); }
+
+.pdp-more__row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-4);
+}
+/* 1.375rem — the product card's name size on the home page. */
+.pdp-more__name { font-size: 1.375rem; font-weight: 500; letter-spacing: -0.01em; }
+/* Hover is the same typographic event as the collection index. */
+.pdp-more__item:hover .pdp-more__name {
+  font-family: var(--font-serif-italic);
+  font-style: italic;
+  font-weight: 400;
+}
+.pdp-more__price {
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  opacity: 0.5;
+}
+
+/* ---------- 11e) not found ---------- */
+
+.pdp--empty {
+  min-height: 60vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-6);
+  text-align: center;
+  padding: var(--pdp-header-clear) var(--space-6) 8rem;
+}
+.pdp-empty__line {
+  font-size: 4rem;
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+}
+.pdp-empty__line .italic {
+  font-family: var(--font-serif-italic);
+  font-style: italic;
+  font-weight: 400;
+}
+/* The 404's only way out. The film no longer carries a back link — the brand mark
+   goes home, and the collection row at the foot of the page goes onward. */
+.pdp-back {
+  font-size: var(--fs-ui); font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  text-decoration: none;
+}
+.pdp-back:hover { opacity: 0.6; }
+
+/* ---------- 11f) narrow viewports ---------- */
+
+/* NOTE: `rem` in a media query resolves against the INITIAL font size (16px), not the
+   fluid root above — so this breaks at 960px, not at 60 x the current root. */
+@media (max-width: 60rem) {
+  .pdp-detail { grid-template-columns: 1fr; padding-top: 5rem; }
+  .pdp-more__list { grid-template-columns: repeat(2, 1fr); }
+  .pdp-empty__line { font-size: 3rem; }
+}
+
 /* ============================================================================
    ACT 3 — narrow viewports.
 
@@ -668,7 +1041,9 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
   }
   .product-info { min-width: 0; }
   .product-info h2 { font-size: 1.125rem; margin-bottom: 0.4rem; }
-  .desc {
+  /* Scoped to the hero card: `.desc` is also the product page's body copy, which
+     must not be clamped to two lines. */
+  .product .desc {
     max-width: none;
     margin-bottom: 0.5rem;
     /* Two lines, then ellipsis — the full copy lives on the product page. */
@@ -723,6 +1098,7 @@ html { font-size: clamp(11px, 0.833vw, 16px); }
   .footer-headline { font-size: 2.25rem; }
   .mobile-nav a { font-size: 1.75rem; }
   /* At this width the thumb plus two lines of type is all that fits beside the
-     button; the description goes and the card becomes name + price. */
-  .desc { display: none; }
+     button; the description goes and the card becomes name + price. Scoped to the
+     card — unscoped it also blanked the product page's body copy. */
+  .product .desc { display: none; }
 }
