@@ -28,7 +28,12 @@ const reveal: Variants = {
 /** Fires once the footer is genuinely on screen, not merely clipping into it. */
 const inView = { once: true, amount: 0.3 } as const;
 
-export function SiteFooter() {
+/**
+ * `overlap` is the film's arrangement only: the footer is pulled 100vh up into the
+ * pile's track so it slides over the still-pinned cards. On an ordinary page there is
+ * nothing to slide over, and the negative margin would swallow 100vh of content.
+ */
+export function SiteFooter({ overlap = false }: { overlap?: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const markRef = useRef<HTMLSpanElement>(null);
 
@@ -69,7 +74,7 @@ export function SiteFooter() {
 
   return (
     <motion.footer
-      className="site-footer"
+      className={overlap ? "site-footer site-footer--overlap" : "site-footer"}
       aria-labelledby="footer-heading"
       initial="hidden"
       whileInView="show"

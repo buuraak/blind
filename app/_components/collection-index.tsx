@@ -1,23 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { motion, useMotionValue, useSpring } from "motion/react";
-
-type Frame = {
-  name: string;
-  ref: string;
-  price: string;
-  img: string;
-};
-
-const FRAMES: Frame[] = [
-  { name: "Fleuris", ref: "1005", price: "$4,650", img: "/frames/frame-01.jpg" },
-  { name: "Orchidée", ref: "2200", price: "$5,200", img: "/frames/frame-02.jpg" },
-  { name: "Vitrine", ref: "0450", price: "$3,980", img: "/frames/frame-03.jpg" },
-  { name: "Camélia", ref: "1180", price: "$6,400", img: "/frames/frame-04.jpg" },
-  { name: "Persienne", ref: "3310", price: "$4,120", img: "/frames/frame-05.jpg" },
-  { name: "Aveugle", ref: "0001", price: "$7,850", img: "/frames/frame-06.jpg" },
-];
+import { FRAMES, frameHref } from "../_data/frames";
 
 /**
  * Collection index. Rows of oversized type; hovering one reveals its frame image
@@ -47,7 +33,12 @@ export function CollectionIndex() {
   };
 
   return (
-    <section className="collection" aria-labelledby="collection-heading">
+    /* `id` is the target of the product page's ← THE COLLECTION link. */
+    <section
+      id="collection"
+      className="collection"
+      aria-labelledby="collection-heading"
+    >
       <header className="section-head">
         <h2 id="collection-heading" className="section-label">
           THE COLLECTION
@@ -62,9 +53,9 @@ export function CollectionIndex() {
         onMouseLeave={() => setActive(null)}
       >
         {FRAMES.map((f, i) => (
-          <a
-            key={f.ref}
-            href="#"
+          <Link
+            key={f.slug}
+            href={frameHref(f.slug)}
             className="collection-row"
             onMouseEnter={() => setActive(i)}
             onFocus={() => setActive(i)}
@@ -82,7 +73,7 @@ export function CollectionIndex() {
             </span>
             <span className="collection-ref">{f.ref}</span>
             <span className="collection-price">{f.price}</span>
-          </a>
+          </Link>
         ))}
 
         <motion.div

@@ -1,9 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import "lenis/dist/lenis.css";
 import "./globals.css";
+import { SmoothScroll } from "./_components/smooth-scroll";
 
 export const metadata: Metadata = {
-  title: "Blind by Glamour",
+  /** Resolves the product pages' relative Open Graph images to absolute URLs.
+   *  Set NEXT_PUBLIC_SITE_URL in the deploy environment. */
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+  ),
+  title: {
+    default: "Blind by Glamour",
+    /** Product pages set only their own name; the house closes every title. */
+    template: "%s — Blind by Glamour",
+  },
 };
 
 /* The palette is #fff and #000 with no dark variant, so the scheme is declared
@@ -33,13 +43,14 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      {/* The skip link is a sibling of `children`, not a wrapper — it adds no
-          stacking context, so the blend invariant above still holds. */}
+      {/* The skip link is a sibling of the scroll provider, not a wrapper — it adds
+          no stacking context, so the blend invariant above still holds. <SmoothScroll>
+          emits no DOM with `root`, so `children` still render directly into <body>. */}
       <body>
         <a className="skip-link" href="#main">
           Skip to content
         </a>
-        {children}
+        <SmoothScroll>{children}</SmoothScroll>
       </body>
     </html>
   );

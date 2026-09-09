@@ -8,6 +8,7 @@ import {
   useTransform,
   type MotionValue,
 } from "motion/react";
+import { getFrame } from "../_data/frames";
 
 /**
  * Cards start stacked in a tight pile at centre and scatter OUTWARD to the edges as
@@ -17,14 +18,19 @@ import {
  * `from` is the stacked position, `to` the scattered one. Both are percentages of the
  * card's OWN size: Motion interpolates % on transforms reliably, and it keeps the
  * composition proportional at any viewport where vw would drift.
+ *
+ * Only the choreography lives here — the imagery is looked up by slug, so the pile
+ * cannot drift out of sync with the collection the way a second hardcoded list did.
+ * The order is compositional, not the collection's: it is the stacking order of the
+ * pile, which is why the slugs are not in index order.
  */
 const CARDS = [
-  { img: "/frames/frame-01.jpg", from: { x: -20, y: -12, r: -10 }, to: { x: -142, y: -70, r: -17 } },
-  { img: "/frames/frame-04.jpg", from: { x: 14, y: 8, r: 7 },      to: { x: 134, y: -78, r: 13 } },
-  { img: "/frames/frame-02.jpg", from: { x: -8, y: 16, r: -4 },    to: { x: -152, y: 68, r: 10 } },
-  { img: "/frames/frame-05.jpg", from: { x: 22, y: -6, r: 12 },    to: { x: 146, y: 74, r: -14 } },
-  { img: "/frames/frame-03.jpg", from: { x: -16, y: 4, r: 3 },     to: { x: -174, y: -4, r: -7 } },
-  { img: "/frames/frame-06.jpg", from: { x: 6, y: -18, r: -8 },    to: { x: 168, y: 14, r: 9 } },
+  { slug: "fleuris-1005",   from: { x: -20, y: -12, r: -10 }, to: { x: -142, y: -70, r: -17 } },
+  { slug: "camelia-1180",   from: { x: 14, y: 8, r: 7 },      to: { x: 134, y: -78, r: 13 } },
+  { slug: "orchidee-2200",  from: { x: -8, y: 16, r: -4 },    to: { x: -152, y: 68, r: 10 } },
+  { slug: "persienne-3310", from: { x: 22, y: -6, r: 12 },    to: { x: 146, y: 74, r: -14 } },
+  { slug: "vitrine-0450",   from: { x: -16, y: 4, r: 3 },     to: { x: -174, y: -4, r: -7 } },
+  { slug: "aveugle-0001",   from: { x: 6, y: -18, r: -8 },    to: { x: 168, y: 14, r: 9 } },
 ];
 
 /** The scatter occupies the middle of the track; the ends hold for entry and exit. */
@@ -72,6 +78,9 @@ function PileCard({
   const y = useTransform(t, (v) => `${lerp(card.from.y, card.to.y, v)}%`);
   const rotate = useTransform(t, (v) => lerp(card.from.r, card.to.r, v));
 
+  const frame = getFrame(card.slug);
+  if (!frame) return null;
+
   return (
     <motion.figure
       className="pile-card"
@@ -81,7 +90,7 @@ function PileCard({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={card.img}
+        src={frame.img}
         alt=""
         draggable={false}
         width={900}
@@ -143,7 +152,7 @@ export function Pile({ reduced = false }: { reduced?: boolean }) {
           <div className="pile-cards">
             {CARDS.map((c, i) => (
               <PileCard
-                key={c.img + i}
+                key={c.slug}
                 card={c}
                 index={i}
                 progress={p}
